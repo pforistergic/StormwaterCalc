@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NRCS TR-55 Stormwater Calculator</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; max-width: 800px; margin: 40px auto; padding: 0 20px; color: #333; line-height: 1.5; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .card { border: 1px solid #e0e0e0; padding: 20px; border-radius: 8px; background: #fafafa; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; font-size: 14px; }
+        select, input { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        button { background: #2c3e50; color: white; padding: 12px 15px; border: none; border-radius: 4px; cursor: pointer; width: 100%; font-size: 16px; font-weight: bold; margin-top: 10px; }
+        button:hover { background: #1a252f; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; font-size: 14px; }
+        th { background-color: #f2f2f2; }
+        #results { margin-top: 25px; padding: 20px; background: #eef7f2; border-radius: 8px; border-left: 5px solid #27ae60; display: none; }
+        .rain-inputs { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; }
+        .rain-inputs div { text-align: center; }
+        .rain-inputs label { font-size: 11px; }
+        .rain-inputs input { padding: 4px; font-size: 12px; text-align: center; }
+    </style>
+</head>
+<body>
+
+    <h2>NRCS TR-55 Stormwater Runoff Calculator</h2>
+    <p>Calculates runoff depths and volumes for multiple 24-hour storm return periods using Land Cover, Hydrologic Soil Groups, and Canopy adjustments.</p>
+    <hr>
+
+    <div class="grid">
+        <div class="card">
+            <h3>1. Site Parameters</h3>
+            <div class="form-group">
+                <label for="soilGroup">Hydrologic Soil Group (HSG):</label>
+                <select id="soilGroup">
+                    <option value="A">A (High infiltration - Sand/Gravel)</option>
+                    <option value="B">B (Moderate infiltration - Sandy Loam)</option>
+                    <option value="C">C (Low infiltration - Clay Loam)</option>
+                    <option value="D">D (Very low infiltration - Clay/Wet soils)</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="landCover">Underlying Land Cover:</label>
+                <select id="landCover">
+                    <option value="open_space">Open Space / Turf Grass (Good Condition)</option>
+                    <option value="bare_soil">Bare Soil / Cultivated</option>
+                    <option value="impervious">Impervious (Paved/Roof - CN 98)</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="canopy">Tree Canopy Cover Over Site (%):</label>
+                <input type="number" id="canopy" value="0" min="0" max="100">
+            </div>
+
+            <div class="form-group">
+                <label for="area">Total Drainage Area (acres):</label>
+                <input type="number" id="area" value="1.0" step="0.1" min="0.001">
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>2. 24-Hour Rainfall Depth (Inches)</h3>
+            
+            <div class="form-group">
+                <label for="cityPreset">Select Region / City Preset:</label>
+                <select id="cityPreset" onchange="updateRainfallPresets()">
+                    <option value="custom">-- Custom / Manual Entry --</option>
+                    <option value="austin">Austin, TX (Humid Subtropical/Flash Flood)</option>
+                    <option value="chicago">Chicago, IL (Midwest/Great Lakes)</option>
+                    <option value="denver">Denver, CO (Semi-Arid/High Altitude)</option>
+                    <option value="miami">Miami, FL (Tropical Wet/Subtropical)</option>
+                    <option value="seattle">Seattle, WA (Pacific Northwest Maritime)</option>
+                </select>
+            </div>
+            
+            <div class="rain-inputs">
+                <div>
+                    <label>1-Yr</label>
+                    <input type="number" id="p1" value="2.2" step="0.1">
+                </div>
+                <div>
+                    <label>2-Yr</label>
+                    <input type="number" id="p2" value="2.7" step="0.1">
+                </div>
+                <div>
+                    <label>10-Yr</label>
+                    <input type="number" id="p10" value="4.1" step="0.1">
+                </div>
+                <div>
+                    <label>25-Yr</label>
+                    <input type="number" id="p25" value="4.8" step="0.1">
+                </div>
+                <div>
+                    <label>100-Yr</label>
+                    <input type="number" id="p100" value="6.2" step="0.1">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <button onclick="calculateTR55()">Run TR-55 Scenario Analysis</button>
+
+    <div id="results">
+        <h3>Analysis Output</h3>
+        <p><strong>Calculated Composite Curve Number (CN):</strong> <span id="outCN" style="font-weight: bold; color: #27ae60;"></span></p>
+        
+        <table>
+            <thead>
+                <tr>
+                    <th>Storm Event</th>
+                    <th>Rainfall Depth (in)</th>
+                    <th>Runoff Depth (in)</th>
+                    <th>Total Runoff Volume (cu ft)</th>
+                </tr>
+            </thead>
+            <tbody id="tableBody">
+                </tbody>
+        </table>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
