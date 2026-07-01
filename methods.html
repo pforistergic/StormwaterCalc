@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Model Methodology & Technical Documentation</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; max-width: 800px; margin: 40px auto; padding: 0 20px; color: #333; line-height: 1.6; }
+        .nav { margin-bottom: 30px; background: #f1f5f9; padding: 10px 20px; border-radius: 6px; }
+        .nav a { color: #1e3a8a; text-decoration: none; font-weight: bold; }
+        .nav a:hover { text-decoration: underline; }
+        h1, h2, h3 { color: #1e3a8a; }
+        h2 { border-bottom: 2px solid #e2e8f0; padding-bottom: 5px; margin-top: 40px; }
+        code { background: #f1f5f9; padding: 2px 6px; border-radius: 4px; font-family: monospace; font-size: 14px; }
+        .formula-box { background: #f8fafc; border-left: 4px solid #1e3a8a; padding: 15px; margin: 20px 0; font-family: Cambria, Georgia, serif; font-size: 18px; text-align: center; }
+        table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+        th, td { border: 1px solid #ddd; padding: 8px 12px; text-align: left; font-size: 14px; }
+        th { background-color: #f1f5f9; }
+    </style>
+</head>
+<body>
+
+    <div class="nav">
+        <a href="index.html">&larr; Back to Calculator Application</a>
+    </div>
+
+    <h1>Technical Documentation & Methodology</h1>
+    <p>This application couples high-resolution land cover data matrices with localized hydrologic soils data to generate stormwater runoff yields and annual pollutant load export estimates.</p>
+
+    <h2>1. Stormwater Runoff Yield Estimation</h2>
+    <p>Runoff depth computations are executed via a modified variant of the <strong>NRCS TR-55 Curve Number (CN) methodology</strong>. To better capture the structural capture performance of tree canopies, the core water yield framework integrates an explicitly defined canopy interception term described by <em>Hynicka & Divers (2016)</em>:</p>
+
+    <div class="formula-box">
+        R = (P - C<sub>i</sub> - I<sub>a</sub>)<sup>2</sup> / [ (P - C<sub>i</sub> - I<sub>a</sub>) + S ]
+    </div>
+
+    <p>Where variables are defined explicitly as:</p>
+    <ul>
+        <li><strong>R:</strong> Computed Runoff Yield Depth (inches)</li>
+        <li><strong>P:</strong> Gross 24-Hour Precipitation Depth (inches)</li>
+        <li><strong>C<sub>i</sub>:</strong> Canopy Interception Parameter Option (inches)</li>
+        <li><strong>I<sub>a</sub>:</strong> Initial Abstraction (inches), fixed structurally at <code>0.2 &times; S</code></li>
+        <li><strong>S:</strong> Potential Maximum Post-Abstraction Soil Retention Capacity (inches), calculated as: <code>S = (1000 / CN<sub>final</sub>) - 10</code></li>
+    </ul>
+
+    <h2>2. Canopy Interception & CN Modifications</h2>
+    <p>The tree canopy modifier introduces two programmatic mechanics to scale retention capacity up to model the ameliorating impacts of leaf litter, localized roots, and organic soil building:</p>
+    <ol>
+        <li><strong>Direct Interception (C<sub>i</sub>):</strong> Subtracts a fixed volume threshold directly from the gross incident rainfall sheet before processing baseline infiltration calculations.</li>
+        <li><strong>Infiltration Adjustment (CN<sub>adj</sub>):</strong> Deducts integer steps directly from the baseline Land Cover Curve Number matrix to simulate increased infiltration capacity.</li>
+    </ol>
+    
+    <table>
+        <thead>
+            <tr>
+                <th>Configuration Target</th>
+                <th>Canopy Interception (C<sub>i</sub>)</th>
+                <th>Curve Number Adjustment (CN<sub>adj</sub>)</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><strong>Recommended Max Mode</strong></td>
+                <td>0.050 inches</td>
+                <td>-2 Matrix Units</td>
+            </tr>
+            <tr>
+                <td><strong>Recommended Mid Mode</strong></td>
+                <td>0.025 inches</td>
+                <td>-1 Matrix Units</td>
+            </tr>
+            <tr>
+                <td><strong>No Canopy Mode</strong></td>
+                <td>0.000 inches</td>
+                <td>0 Matrix Units</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h2>3. Annual Land-Use Loading Export Profiles</h2>
+    <p>Annual total edge-of-stream nonpoint source pollutant exports are generated dynamically utilizing export matrices sourced from the <strong>Chesapeake Assessment Scenario Tool (CAST) Phase 6 Land-Use Model</strong>. Loading yields represent macro-scale nutrient transport baselines computed directly against assigned project acreage:</p>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Matrix Land Cover Class</th>
+                <th>Total Nitrogen (N)<br><small>lbs/acre/year</small></th>
+                <th>Total Phosphorus (P)<br><small>lbs/acre/year</small></th>
+                <th>Suspended Sediment (SED)<br><small>tons/acre/year</small></th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr><td>1. Trees over pervious</td><td>8.53</td><td>0.65</td><td>0.10</td></tr>
+            <tr><td>2. Trees over Impervious</td><td>20.49</td><td>0.75</td><td>0.30</td></tr>
+            <tr><td>3. Pervious</td><td>11.19</td><td>0.86</td><td>0.47</td></tr>
+            <tr><td>4. Water</td><td>0.00</td><td>0.00</td><td>0.00</td></tr>
+            <tr><td>5. Impervious</td><td>22.45</td><td>0.83</td><td>1.49</td></tr>
+            <tr><td>6. Bare Earth</td><td>26.80</td><td>3.21</td><td>14.55</td></tr>
+            <tr><td>7. Forested open space</td><td>1.68</td><td>0.08</td><td>0.07</td></tr>
+            <tr><td>8. Forested wetland</td><td>1.68</td><td>0.08</td><td>0.04</td></tr>
+            <tr><td>9. Wetlands</td><td>1.68</td><td>0.08</td><td>0.04</td></tr>
+            <tr><td>10. Scrub/Shrub/Palm</td><td>1.62</td><td>0.36</td><td>0.29</td></tr>
+        </tbody>
+    </table>
+
+</body>
+</html>

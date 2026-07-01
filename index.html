@@ -3,125 +3,174 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NRCS TR-55 Stormwater Calculator</title>
+    <title>Advanced TR-55 & CAST Stormwater Model</title>
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; max-width: 800px; margin: 40px auto; padding: 0 20px; color: #333; line-height: 1.5; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; max-width: 900px; margin: 40px auto; padding: 0 20px; color: #333; line-height: 1.5; }
         .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-        .card { border: 1px solid #e0e0e0; padding: 20px; border-radius: 8px; background: #fafafa; }
+        .card { border: 1px solid #e0e0e0; padding: 20px; border-radius: 8px; background: #fafafa; margin-bottom: 20px; }
+        .community-card { background: #e0f2fe; border: 1px solid #bae6fd; }
         .form-group { margin-bottom: 15px; }
         label { display: block; margin-bottom: 5px; font-weight: bold; font-size: 14px; }
         select, input { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
-        button { background: #2c3e50; color: white; padding: 12px 15px; border: none; border-radius: 4px; cursor: pointer; width: 100%; font-size: 16px; font-weight: bold; margin-top: 10px; }
-        button:hover { background: #1a252f; }
-        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        button { background: #1e3a8a; color: white; padding: 14px 15px; border: none; border-radius: 4px; cursor: pointer; width: 100%; font-size: 16px; font-weight: bold; }
+        button:hover { background: #172554; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; margin-bottom: 25px; }
         th, td { border: 1px solid #ddd; padding: 10px; text-align: left; font-size: 14px; }
-        th { background-color: #f2f2f2; }
-        #results { margin-top: 25px; padding: 20px; background: #eef7f2; border-radius: 8px; border-left: 5px solid #27ae60; display: none; }
+        th { background-color: #f1f5f9; }
+        .section-title { border-bottom: 2px solid #e2e8f0; padding-bottom: 5px; margin-top: 25px; color: #1e3a8a; }
+        #results { margin-top: 25px; padding: 20px; background: #f8fafc; border-radius: 8px; border: 1px solid #cbd5e1; display: none; }
         .rain-inputs { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; }
         .rain-inputs div { text-align: center; }
         .rain-inputs label { font-size: 11px; }
         .rain-inputs input { padding: 4px; font-size: 12px; text-align: center; }
+        .highlight { font-weight: bold; color: #0f766e; }
     </style>
 </head>
 <body>
 
-    <h2>NRCS TR-55 Stormwater Runoff Calculator</h2>
-    <p>Calculates runoff depths and volumes for multiple 24-hour storm return periods using Land Cover, Hydrologic Soil Groups, and Canopy adjustments.</p>
+    <h2>Advanced NRCS TR-55 & CAST Stormwater Runoff Model</h2>
+    <p>Recreating the high-resolution land cover matrix with Hynicka & Divers (2016) canopy updates and Chesapeake Bay Program Phase 6 export loading rates.</p>
+    
+    <div style="background: #f1f5f9; padding: 10px; border-radius: 6px; margin-bottom: 20px;">
+        <a href="methods.html" style="color: #1e3a8a; font-weight: bold; text-decoration: none;" target="_blank">📖 View Technical Documentation & Methodology</a>
+    </div>
+
     <hr>
+
+<div class="card community-card">
+        <h3 style="margin-top: 0;">Community Location</h3>
+        <div class="form-group" style="margin-bottom: 0;">
+            <label for="cityPreset">Select Region / City Preset (Automatically loads local rainfall data):</label>
+            <select id="cityPreset" onchange="updateRainfallPresets()">
+                <option value="custom">-- Custom / Manual Depth Entry --</option>
+                <option value="atlanta">Atlanta, GA</option>
+                <option value="boston">Boston, MA</option>
+                <option value="chicago">Chicago, IL</option>
+                <option value="dallas">Dallas, TX</option>
+                <option value="jacksonville">Jacksonville, FL</option>
+                <option value="las_vegas">Las Vegas, NV</option>
+                <option value="seattle">Seattle, WA</option>
+                <option value="washington_dc">Washington DC</option>
+            </select>
+        </div>
+    </div>
 
     <div class="grid">
         <div class="card">
             <h3>1. Site Parameters</h3>
             <div class="form-group">
-                <label for="soilGroup">Hydrologic Soil Group (HSG):</label>
-                <select id="soilGroup">
-                    <option value="A">A (High infiltration - Sand/Gravel)</option>
-                    <option value="B">B (Moderate infiltration - Sandy Loam)</option>
-                    <option value="C">C (Low infiltration - Clay Loam)</option>
-                    <option value="D">D (Very low infiltration - Clay/Wet soils)</option>
-                </select>
-            </div>
-
-            <div class="form-group">
-                <label for="landCover">Underlying Land Cover:</label>
+                <label for="landCover">Land Cover Classification:</label>
                 <select id="landCover">
-                    <option value="open_space">Open Space / Turf Grass (Good Condition)</option>
-                    <option value="bare_soil">Bare Soil / Cultivated</option>
-                    <option value="impervious">Impervious (Paved/Roof - CN 98)</option>
+                    <option value="1">1. Trees over pervious</option>
+                    <option value="2">2. Trees over Impervious</option>
+                    <option value="3" selected>3. Pervious</option>
+                    <option value="4">4. Water</option>
+                    <option value="5">5. Impervious</option>
+                    <option value="6">6. Bare Earth</option>
+                    <option value="7">7. Forested open space</option>
+                    <option value="8">8. Forested wetland</option>
+                    <option value="9">9. Wetlands</option>
+                    <option value="10">10. Scrub/Shrub/Palm</option>
                 </select>
             </div>
 
-            <div class="form-group">
-                <label for="canopy">Tree Canopy Cover Over Site (%):</label>
-                <input type="number" id="canopy" value="0" min="0" max="100">
-            </div>
-
-            <div class="form-group">
-                <label for="area">Total Drainage Area (acres):</label>
-                <input type="number" id="area" value="1.0" step="0.1" min="0.001">
+            <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 10px; padding: 0;">
+                <div class="form-group">
+                    <label for="soilGroup">Soil Group (HSG):</label>
+                    <select id="soilGroup">
+                        <option value="A">A</option>
+                        <option value="A_D">A/D</option>
+                        <option value="B">B</option>
+                        <option value="B_D">B/D</option>
+                        <option value="C">C</option>
+                        <option value="C_D">C/D</option>
+                        <option value="D">D</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="area">Area (acres):</label>
+                    <input type="number" id="area" value="1.0" step="0.1" min="0.001">
+                </div>
             </div>
         </div>
 
         <div class="card">
-            <h3>2. 24-Hour Rainfall Depth (Inches)</h3>
+            <h3>2. Canopy Interception & Rainfall</h3>
             
             <div class="form-group">
-                <label for="cityPreset">Select Region / City Preset:</label>
-                <select id="cityPreset" onchange="updateRainfallPresets()">
-                    <option value="custom">-- Custom / Manual Entry --</option>
-                    <option value="austin">Austin, TX (Humid Subtropical/Flash Flood)</option>
-                    <option value="chicago">Chicago, IL (Midwest/Great Lakes)</option>
-                    <option value="denver">Denver, CO (Semi-Arid/High Altitude)</option>
-                    <option value="miami">Miami, FL (Tropical Wet/Subtropical)</option>
-                    <option value="seattle">Seattle, WA (Pacific Northwest Maritime)</option>
+                <label for="canopyChoice">Canopy Interception Configuration:</label>
+                <select id="canopyChoice">
+                    <option value="max">Recommended Max (Ci: 0.050", CNadj: -2)</option>
+                    <option value="mid">Recommended Mid (Ci: 0.025", CNadj: -1)</option>
+                    <option value="none">No Canopy Modification (Ci: 0.000", CNadj: 0)</option>
                 </select>
             </div>
-            
+
+            <label style="margin-top: 15px;">24-Hour Rainfall Depth (inches):</label>
             <div class="rain-inputs">
-                <div>
-                    <label>1-Yr</label>
-                    <input type="number" id="p1" value="2.2" step="0.1">
-                </div>
-                <div>
-                    <label>2-Yr</label>
-                    <input type="number" id="p2" value="2.7" step="0.1">
-                </div>
-                <div>
-                    <label>10-Yr</label>
-                    <input type="number" id="p10" value="4.1" step="0.1">
-                </div>
-                <div>
-                    <label>25-Yr</label>
-                    <input type="number" id="p25" value="4.8" step="0.1">
-                </div>
-                <div>
-                    <label>100-Yr</label>
-                    <input type="number" id="p100" value="6.2" step="0.1">
-                </div>
+                <div><label>1-Yr</label><input type="number" id="p1" value="2.2" step="0.1"></div>
+                <div><label>2-Yr</label><input type="number" id="p2" value="2.7" step="0.1"></div>
+                <div><label>10-Yr</label><input type="number" id="p10" value="4.1" step="0.1"></div>
+                <div><label>25-Yr</label><input type="number" id="p25" value="4.8" step="0.1"></div>
+                <div><label>100-Yr</label><input type="number" id="p100" value="6.2" step="0.1"></div>
             </div>
         </div>
     </div>
 
-    <button onclick="calculateTR55()">Run TR-55 Scenario Analysis</button>
+    <button onclick="executeModelWorkflow()">Run Environmental Simulation</button>
 
     <div id="results">
-        <h3>Analysis Output</h3>
-        <p><strong>Calculated Composite Curve Number (CN):</strong> <span id="outCN" style="font-weight: bold; color: #27ae60;"></span></p>
-        
+        <h3 class="section-title" style="margin-top: 0;">Hydrology & Parameters Output</h3>
+        <p>
+            Base Matrix Curve Number: <span id="outBaseCN" class="highlight"></span> | 
+            Adjusted Matrix Curve Number: <span id="outFinalCN" class="highlight"></span> | 
+            Potential Max Retention: <span id="outS" class="highlight"></span> inches
+        </p>
+
         <table>
             <thead>
                 <tr>
-                    <th>Storm Event</th>
-                    <th>Rainfall Depth (in)</th>
-                    <th>Runoff Depth (in)</th>
+                    <th>Storm Return Horizon</th>
+                    <th>Rain Depth (in)</th>
+                    <th>Runoff Yield (in)</th>
                     <th>Total Runoff Volume (cu ft)</th>
+                    <th>Total Runoff Volume (Gallons)</th>
                 </tr>
             </thead>
-            <tbody id="tableBody">
-                </tbody>
+            <tbody id="hydrologyTableBody"></tbody>
+        </table>
+
+        <h3 class="section-title">Annual Land-Use Water-Quality Load Profile (CAST Phase 6)</h3>
+        <p style="font-size: 13px; color: #4b5563; margin-top: -10px;">Edge of stream nutrient loading estimates based on localized acreage parameters.</p>
+        <table>
+            <thead>
+                <tr>
+                    <th>Chemical / Pollutant Matrix</th>
+                    <th>Standard Loading Rate Unit</th>
+                    <th>Total Computed Annual Export Load</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>Total Nitrogen (N)</strong></td>
+                    <td>lbs / acre / year</td>
+                    <td><span id="outLoadN" class="highlight"></span> lbs/yr</td>
+                </tr>
+                <tr>
+                    <td><strong>Total Phosphorus (P)</strong></td>
+                    <td>lbs / acre / year</td>
+                    <td><span id="outLoadP" class="highlight"></span> lbs/yr</td>
+                </tr>
+                <tr>
+                    <td><strong>Total Sediment Suspensions (SED)</strong></td>
+                    <td>tons / acre / year</td>
+                    <td><span id="outLoadSed" class="highlight"></span> tons/yr</td>
+                </tr>
+            </tbody>
         </table>
     </div>
 
+<script src="tr55_engine.js"></script>
     <script src="app.js"></script>
 </body>
 </html>
